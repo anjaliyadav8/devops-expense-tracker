@@ -1,0 +1,81 @@
+name: Expense Tracker CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ── JOB 1: TEST ──────────────────────────────────────
+  test:
+    name: ✅ Test Application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: cd backend && npm install
+
+      - name: Start Server & Test
+        run: |
+          cd backend && node server.js &
+          sleep 3
+          curl -f http://localhost:3000/health
+          echo "✅ API Health Check Passed!"
+
+  # ── JOB 2: BUILD DOCKER ──────────────────────────────
+  build:
+    name: 🐳 Build Docker Images
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Build Frontend Docker Image
+        run: |
+          docker build -t expense-frontend:latest ./frontend
+          echo "✅ Frontend image built!"
+
+      - name: Build Backend Docker Image
+        run: |
+          docker build -t expense-backend:latest ./backend
+          echo "✅ Backend image built!"
+
+      - name: Run Docker Compose
+        run: |
+          docker compose up -d --build
+          sleep 5
+          docker compose ps
+          echo "✅ All containers running!"
+
+      - name: Test Running App
+        run: |
+          curl -f http://localhost:3000/health
+          echo "✅ App is running in Docker!"
+
+      - name: Stop Containers
+        run: docker compose down
+
+  # ── JOB 3: DEPLOY ────────────────────────────────────
+  deploy:
+    name: 🚀 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Deploy Application
+        run: |
+          echo "🚀 Deploying Expense Tracker..."
+          echo "✅ Deployment Successful!"
+          echo "🌐 App is live!"

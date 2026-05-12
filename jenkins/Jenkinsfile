@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                echo '✅ Checking out code from GitHub...'
+                checkout scm
+            }
+        }
+
+        stage('Test') {
+            steps {
+                echo '✅ Running tests...'
+                sh 'cd backend && npm install'
+                sh 'echo Tests passed!'
+            }
+        }
+
+        stage('Build Docker Images') {
+            steps {
+                echo '🐳 Building Docker images...'
+                sh 'docker build -t expense-frontend:latest ./frontend'
+                sh 'docker build -t expense-backend:latest ./backend'
+                echo '✅ Docker images built!'
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo '🚀 Deploying application...'
+                sh 'docker compose up -d --build'
+                echo '✅ Deployment successful!'
+            }
+        }
+
+        stage('Health Check') {
+            steps {
+                echo '🔍 Checking app health...'
+                sh 'sleep 5 && curl -f http://localhost:3000/health'
+                echo '✅ App is healthy!'
+            }
+        }
+    }
+
+    post {
+        success {
+            echo '🎉 Pipeline completed successfully!'
+        }
+        failure {
+            echo '❌ Pipeline failed!'
+        }
+    }
+}

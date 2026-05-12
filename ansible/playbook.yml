@@ -1,0 +1,46 @@
+---
+- name: Setup Expense Tracker Server
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Update system packages
+      apt:
+        update_cache: yes
+        upgrade: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Install Docker Compose
+      apt:
+        name: docker-compose
+        state: present
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Copy application files
+      copy:
+        src: ../
+        dest: /opt/expense-tracker/
+
+    - name: Run application with Docker Compose
+      command: docker compose up -d
+      args:
+        chdir: /opt/expense-tracker
+
+    - name: Check app is running
+      uri:
+        url: http://localhost:3000/health
+        status_code: 200
+      register: result
+
+    - name: Show result
+      debug:
+        msg: "✅ Expense Tracker is running!"
