@@ -1,6 +1,6 @@
 # 💰 Expense Tracker - Complete DevOps Project
 ### By Anjali
-### Presentation Demo - June 8, 2026
+### Presentation final - June 10, 2026
 
 ---
 

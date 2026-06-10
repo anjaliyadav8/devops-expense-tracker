@@ -2,6 +2,16 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const client = require('prom-client');
+client.collectDefaultMetrics();
+const expenseCounter = new client.Counter({
+  name: 'expense_transactions_total',
+  help: 'Total number of expense transactions'
+});
+const expenseGauge = new client.Gauge({
+  name: 'expense_total_amount',
+  help: 'Total expense amount'
+});
 
 const app = express();
 app.use(cors());
@@ -15,6 +25,8 @@ app.get('/api/expenses', (req,res) => res.json(read()));
 app.post('/api/expenses', (req,res) => {
   const data = read();
   const tx = { id: Date.now().toString(), ...req.body };
+  expenseCounter.inc();
+  expenseGauge.inc(tx.amount);
   data.unshift(tx); write(data); res.status(201).json(tx);
 });
 app.delete('/api/expenses/:id', (req,res) => {
@@ -28,5 +40,9 @@ app.get('/api/summary', (req,res) => {
   res.json({ income, expense, balance: income-expense, total: data.length });
 });
 app.get('/health', (req,res) => res.json({ status:'ok', message:'Expense Tracker API Running!' }));
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
+});
 
 app.listen(3000, () => console.log('✅ Server running on http://localhost:3000'));
